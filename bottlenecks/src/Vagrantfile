@@ -1,0 +1,73 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/xenial64"
+  config.vm.provider "virtualbox" do |vb|
+    # Customize the amount of memory on the VM:
+    vb.memory = "1024"
+    vb.cpus = 2
+  end
+
+  config.vm.define "api" do |api|
+      api.vm.network "forwarded_port", guest: 80, host: 8080
+      api.vm.network "public_network", ip: "192.168.50.4"
+      api.vm.synced_folder "bounds", "/app"
+      api.vm.provision "shell", inline: <<-SHELL
+        apt-get update
+        apt-get install -y nginx python3-pip htop || :
+        pip3 install psutil tornado redis &&
+        if [[ ! -h /etc/nginx/sites-enabled/api ]]; then
+            ln -s /app/nginx/sites-enabled/api /etc/nginx/sites-enabled/api || :
+        fi
+
+        echo "192.168.50.5  resources.io" >> /etc/hosts
+
+        echo "Killing server.py"
+        pgrep -f server.py | xargs kill -TERM
+        echo "Starting new servers..."
+            python3 /app/server.py --port=8888 &
+            python3 /app/server.py --port=8889 &
+            python3 /app/server.py --port=8890 &
+            python3 /app/server.py --port=8891 &
+        echo "Killing system monitor..."
+        pgrep -f system_monitor.py | xargs kill -TERM
+        echo "Starting new system monitor..."
+            python3 /app/monitor/system_monitor.py &
+        echo "Restarting nginx..."
+        service nginx restart
+      SHELL
+  end
+
+  config.vm.define "resources" do |resources|
+      resources.vm.network "forwarded_port", guest: 80, host: 8081
+      resources.vm.network "forwarded_port", guest: 6379, host: 63799
+      resources.vm.network "public_network", ip: "192.168.50.5"
+      resources.vm.synced_folder "resources", "/app"
+      resources.vm.provision "shell", inline: <<-SHELL
+        apt-get update
+        apt-get install -y nginx python3-pip redis-server htop || :
+        pip3 install psutil tornado redis &&
+        if [[ ! -h /etc/nginx/sites-enabled/resources ]]; then
+            ln -s /app/nginx/sites-enabled/resources /etc/nginx/sites-enabled/resources || :
+        fi
+        rm -rf /etc/redis/redis.conf 
+        ln -s /app/redis/redis.conf /etc/redis/redis.conf || :
+        chown root:root /app/redis/redis.conf
+        chmod 655 /app/redis/redis.conf
+
+        echo "Restarting redis..."
+        service redis-server restart
+        echo "Killing server.py"
+        pgrep -f server.py | xargs kill -TERM
+        echo "Starting new servers..."
+            python3 /app/server.py --port=8888 &
+            python3 /app/server.py --port=8889 &
+            python3 /app/server.py --port=8890 &
+            python3 /app/server.py --port=8891 &
+        echo "Restarting nginx..."
+        service nginx restart
+      SHELL
+  end
+
+end
