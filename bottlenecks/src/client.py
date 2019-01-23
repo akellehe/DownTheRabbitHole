@@ -1,18 +1,19 @@
 import multiprocessing
 import time
+import random
 
 import redis
 import requests
 
 
-ENDPOINT = 'http://api.io:8080/bounded/network_io'
+ENDPOINT = 'http://api.io:8080/bounded/cpu'
 
 
 def send():
     print("Starting new process...")
     redis_cli = redis.StrictRedis('localhost', 63799)
     while True:
-        time.sleep(1.)
+        time.sleep(0.5 + random.random())
         redis_cli.incr('client_requests')
         try:
             resp = requests.get(ENDPOINT)

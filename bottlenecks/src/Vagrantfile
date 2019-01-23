@@ -12,7 +12,7 @@ Vagrant.configure("2") do |config|
   config.vm.define "api" do |api|
       api.vm.network "forwarded_port", guest: 80, host: 8080
       api.vm.network "public_network", ip: "192.168.50.4"
-      api.vm.synced_folder "bounds", "/app"
+      api.vm.synced_folder "api", "/app"
       api.vm.provision "shell", inline: <<-SHELL
         apt-get update
         apt-get install -y nginx python3-pip htop || :
