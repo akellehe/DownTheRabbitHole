@@ -1,4 +1,5 @@
 import logging
+import sys
 import time
 import tempfile
 import json
@@ -14,7 +15,7 @@ import redis
 from tornado.options import define, options
 
 define("port", default=8888, help="run on the given port", type=int)
-logging.basicConfig(format='%(levelname)s - %(filename)s:L%(lineno)d pid=%(process)d - %(message)s')
+logging.basicConfig(format='%(levelname)s - %(filename)s:L%(lineno)d pid=%(process)d - %(message)s', stream=sys.stdout)
 logger = logging.getLogger('agent')
 redis_cli = redis.StrictRedis('192.168.50.5', 6379)
 http_client = tornado.httpclient.AsyncHTTPClient()
@@ -39,17 +40,9 @@ class API(tornado.web.RequestHandler):
                     'successful': get_float('client_requests_succeeded', default=0),
                     'failed': get_float('client_requests_failed', default=0),
                 },
-                'cpu': {
-                    'user': get_float('user_cpu', default=0),
-                    'system': get_float('system_cpu', default=0),
-                    'nice': get_float('nice_cpu', default=0),
-
-                },
-                'soft_interrupts': get_float('soft_interrupts', default=0.),
-                'hard_interrupts': get_float('hard_interrupts', default=0.),
-                'context_switches': get_float('context_switches', default=0.),
-                'io_wait': get_float('io_wait', default=0.),
+                'host': json.loads(redis_cli.get('host').decode('utf-8'))
             }, indent=2, sort_keys=True))
+
 
         self.set_header('Content-Type', 'application/json')
         self.finish()
@@ -90,8 +83,14 @@ class FileIOBound(API):
 class NetworkIOBound(API):
 
     async def get(self):
+        resp = await http_client.fetch('http://resources.io/resource/network/big')
+        bytes_received = 0
         start = time.time()
-        response = await http_client.fetch('http://resources.io/resource/network/big')
+        while resp.buffer.read(1024 * 1024):
+            bytes_received += 1024 * 1024
+            elapsed = time.time() - start
+            start = time.time()
+            logging.info("%s bytes/second", (1024. * 1024.) / (elapsed * 1000.))
         self.respond(start)
 
 
@@ -117,7 +116,7 @@ def main():
     tornado.options.parse_command_line()
     server = tornado.httpserver.HTTPServer(get_app())
     server.listen(options.port)
-    server.start(num_processes=2)
+    server.start()
     logger.info("Server listening on port %s", options.port)
     loop.start()
 

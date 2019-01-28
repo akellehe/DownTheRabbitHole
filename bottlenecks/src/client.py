@@ -6,7 +6,7 @@ import redis
 import requests
 
 
-ENDPOINT = 'http://api.io:8080/bounded/cpu'
+ENDPOINT = 'http://api.io:8080/bounded/network_io'
 
 
 def send():

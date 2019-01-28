@@ -16,9 +16,14 @@ Vagrant.configure("2") do |config|
       api.vm.provision "shell", inline: <<-SHELL
         apt-get update
         apt-get install -y nginx python3-pip htop || :
-        pip3 install psutil tornado redis &&
+        pip3 install tornado redis &&
         if [[ ! -h /etc/nginx/sites-enabled/api ]]; then
             ln -s /app/nginx/sites-enabled/api /etc/nginx/sites-enabled/api || :
+        fi
+        if [ ! -d /etc/init.d/api ]; then
+            ln -s /app/init.d/api /etc/init.d/api || :
+            chown -R root:root /etc/init.d/api
+            chmod -R 755 /etc/init.d/api
         fi
 
         echo "192.168.50.5  resources.io" >> /etc/hosts
@@ -26,16 +31,14 @@ Vagrant.configure("2") do |config|
         echo "Killing server.py"
         pgrep -f server.py | xargs kill -TERM
         echo "Starting new servers..."
-            python3 /app/server.py --port=8888 &
-            python3 /app/server.py --port=8889 &
-            python3 /app/server.py --port=8890 &
-            python3 /app/server.py --port=8891 &
+        /etc/init.d/api/api start
         echo "Killing system monitor..."
         pgrep -f system_monitor.py | xargs kill -TERM
         echo "Starting new system monitor..."
             python3 /app/monitor/system_monitor.py &
         echo "Restarting nginx..."
         service nginx restart
+        hostname "api"
       SHELL
   end
 
@@ -47,7 +50,7 @@ Vagrant.configure("2") do |config|
       resources.vm.provision "shell", inline: <<-SHELL
         apt-get update
         apt-get install -y nginx python3-pip redis-server htop || :
-        pip3 install psutil tornado redis &&
+        pip3 install tornado redis &&
         if [[ ! -h /etc/nginx/sites-enabled/resources ]]; then
             ln -s /app/nginx/sites-enabled/resources /etc/nginx/sites-enabled/resources || :
         fi
@@ -67,6 +70,7 @@ Vagrant.configure("2") do |config|
             python3 /app/server.py --port=8891 &
         echo "Restarting nginx..."
         service nginx restart
+        hostname "resources"
       SHELL
   end
 

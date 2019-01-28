@@ -17,7 +17,7 @@ logging.basicConfig(format='%(levelname)s - %(filename)s:L%(lineno)d pid=%(proce
 logger = logging.getLogger('agent')
 redis_cli = redis.StrictRedis()
 big_random = "".join([random.choice('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
-                      for i in range(1024 * 1024)]) # 30MB
+                      for i in range(1024 * 1024)])
 medium_random = "".join([random.choice('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
                          for i in range(1024)])
 
@@ -31,7 +31,12 @@ class API(tornado.web.RequestHandler):
 class BigNetwork(API):
 
     async def get(self):
-        self.write(big_random)  # 1MB
+        i = 0
+        page = 1024 * 1024 # 1MB
+        while i < len(big_random):
+            self.write(big_random[i*page:(i+1)*page])
+            i += page
+            self.flush()
         self.finish()
 
 
@@ -64,7 +69,7 @@ def main():
     tornado.options.parse_command_line()
     server = tornado.httpserver.HTTPServer(get_app())
     server.listen(options.port)
-    server.start(num_processes=2)
+    server.start()
     logger.info("Server listening on port %s", options.port)
     loop.start()
 
