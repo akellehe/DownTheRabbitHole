@@ -55,14 +55,17 @@ class API(tornado.web.RequestHandler):
         self.respond(start)
 
 
+def fib(n):
+    if n == 0: return 0
+    elif n == 1: return 1
+    else: return fib(n-1) + fib(n-2)
+
+
 class CPUBound(API):
 
     async def get(self):
         start = time.time()
-        total = 0
-        for i in range(100000):
-            total = total * random.random()
-            total = total / random.random()
+        fib(random.randint(20, 30))
         self.respond(start)
 
 

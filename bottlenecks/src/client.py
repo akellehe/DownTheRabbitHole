@@ -6,7 +6,7 @@ import redis
 import requests
 
 
-ENDPOINT = 'http://api.io:8080/bounded/network_io'
+ENDPOINT = 'http://api.io:8080/bounded/cpu'
 
 
 def send():
@@ -33,7 +33,7 @@ try:
         t = multiprocessing.Process(target=send)
         t.start()
         threads.append(t)
-        time.sleep(10)
+        time.sleep(120)
 except KeyboardInterrupt:
     for t in threads:
         t.join()

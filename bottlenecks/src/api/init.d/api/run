@@ -1,9 +1,0 @@
-#!/bin/bash
-sudo -H -u "vagrant" -s python3 /app/server.py --port=8888 &
-echo $! > "$pid_filea"
-sudo -H -u "vagrant" -s python3 /app/server.py --port=8889 &
-echo $! > "$pid_fileb"
-sudo -H -u "vagrant" -s python3 /app/server.py --port=8890 &
-echo $! > "$pid_filec"
-sudo -H -u "vagrant" -s python3 /app/server.py --port=8891 &
-echo $! > "$pid_filed"

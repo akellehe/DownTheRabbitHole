@@ -6,7 +6,7 @@ Vagrant.configure("2") do |config|
   config.vm.provider "virtualbox" do |vb|
     # Customize the amount of memory on the VM:
     vb.memory = "1024"
-    vb.cpus = 2
+    vb.cpus = 1
   end
 
   config.vm.define "api" do |api|
@@ -15,30 +15,25 @@ Vagrant.configure("2") do |config|
       api.vm.synced_folder "api", "/app"
       api.vm.provision "shell", inline: <<-SHELL
         apt-get update
-        apt-get install -y nginx python3-pip htop || :
+        apt-get install -y nginx python3-pip htop supervisor || :
         pip3 install tornado redis &&
+
+        echo "192.168.50.5  resources.io" >> /etc/hosts
+        hostname "api"
+
         if [[ ! -h /etc/nginx/sites-enabled/api ]]; then
             ln -s /app/nginx/sites-enabled/api /etc/nginx/sites-enabled/api || :
         fi
-        if [ ! -d /etc/init.d/api ]; then
-            ln -s /app/init.d/api /etc/init.d/api || :
-            chown -R root:root /etc/init.d/api
-            chmod -R 755 /etc/init.d/api
-        fi
-
-        echo "192.168.50.5  resources.io" >> /etc/hosts
-
-        echo "Killing server.py"
-        pgrep -f server.py | xargs kill -TERM
-        echo "Starting new servers..."
-        /etc/init.d/api/api start
-        echo "Killing system monitor..."
-        pgrep -f system_monitor.py | xargs kill -TERM
-        echo "Starting new system monitor..."
-            python3 /app/monitor/system_monitor.py &
-        echo "Restarting nginx..."
         service nginx restart
-        hostname "api"
+
+        if [ ! -h /etc/supervisor/conf.d/api.conf ]; then
+            ln -s /app/supervisor/conf.d/api.conf /etc/supervisor/conf.d/api.conf || :
+        fi
+        if [ ! -h /etc/supervisor/conf.d/system_monitor.conf ]; then
+            ln -s /app/supervisor/conf.d/system_monitor.conf /etc/supervisor/conf.d/system_monitor.conf || :
+        fi
+        supervisorctl reload
+
       SHELL
   end
 
@@ -49,28 +44,29 @@ Vagrant.configure("2") do |config|
       resources.vm.synced_folder "resources", "/app"
       resources.vm.provision "shell", inline: <<-SHELL
         apt-get update
-        apt-get install -y nginx python3-pip redis-server htop || :
+        apt-get install -y nginx python3-pip redis-server htop supervisor || :
         pip3 install tornado redis &&
-        if [[ ! -h /etc/nginx/sites-enabled/resources ]]; then
-            ln -s /app/nginx/sites-enabled/resources /etc/nginx/sites-enabled/resources || :
-        fi
-        rm -rf /etc/redis/redis.conf 
+        hostname "resources"
+
+        # Set up redis process
+        rm -rf /etc/redis/redis.conf
         ln -s /app/redis/redis.conf /etc/redis/redis.conf || :
         chown root:root /app/redis/redis.conf
         chmod 655 /app/redis/redis.conf
-
-        echo "Restarting redis..."
         service redis-server restart
-        echo "Killing server.py"
-        pgrep -f server.py | xargs kill -TERM
-        echo "Starting new servers..."
-            python3 /app/server.py --port=8888 &
-            python3 /app/server.py --port=8889 &
-            python3 /app/server.py --port=8890 &
-            python3 /app/server.py --port=8891 &
-        echo "Restarting nginx..."
+
+        # Set up supervisor processes
+        if [ ! -h /etc/supervisor/conf.d/resources.conf ]; then
+            ln -s /app/supervisor/conf.d/resources.conf /etc/supervisor/conf.d/resources.conf || :
+        fi
+        supervisorctl reload
+
+        # Set up nginx
+        if [[ ! -h /etc/nginx/sites-enabled/resources ]]; then
+            ln -s /app/nginx/sites-enabled/resources /etc/nginx/sites-enabled/resources || :
+        fi
         service nginx restart
-        hostname "resources"
+
       SHELL
   end
 

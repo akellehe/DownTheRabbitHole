@@ -226,7 +226,13 @@ async def daemonize():
 
 def main():
     print('starting event loop')
+
+    def stop_on_exception(loop, context):
+        loop.default_exception_handler(context)
+        loop.stop()
+
     loop = asyncio.get_event_loop()
+    loop.set_exception_handler(stop_on_exception)
     loop.create_task(daemonize())
     loop.run_forever()
 
