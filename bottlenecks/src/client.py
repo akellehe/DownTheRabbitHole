@@ -13,7 +13,7 @@ def send():
     print("Starting new process...")
     redis_cli = redis.StrictRedis('localhost', 63799)
     while True:
-        time.sleep(0.5 + random.random())
+        time.sleep(1. + (random.choice([-1, 1]) * random.random()))
         redis_cli.incr('client_requests')
         try:
             resp = requests.get(ENDPOINT)
@@ -33,7 +33,7 @@ try:
         t = multiprocessing.Process(target=send)
         t.start()
         threads.append(t)
-        time.sleep(120)
+        time.sleep(600)
 except KeyboardInterrupt:
     for t in threads:
         t.join()
