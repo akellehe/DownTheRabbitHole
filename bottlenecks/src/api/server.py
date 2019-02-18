@@ -19,6 +19,10 @@ logging.basicConfig(format='%(levelname)s - %(filename)s:L%(lineno)d pid=%(proce
 logger = logging.getLogger('agent')
 redis_cli = redis.StrictRedis('192.168.50.5', 6379)
 http_client = tornado.httpclient.AsyncHTTPClient()
+alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+bigtext = "".join([random.choice(alphabet) for i in range(1024 * 500)]).encode('utf8') # 500kb
+
+
 
 TORNADO_SETTINGS = {'debug': True, 'autorestart': True}
 
@@ -75,8 +79,8 @@ class FileIOBound(API):
         try:
             start = time.time()
             f = tempfile.NamedTemporaryFile()
-            for i in range(10000):
-                f.write(str(i).encode('utf-8'))
+            for i in range(10):
+                f.write(bigtext)
                 f.flush()
         finally:
             f.close()
