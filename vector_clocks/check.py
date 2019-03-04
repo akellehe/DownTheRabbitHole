@@ -7,5 +7,3 @@ for port in ports:
     resp = requests.get('http://localhost:{}/append'.format(port),
         headers={'Content-Type': 'application/json'}).text
     print(port, json.dumps(resp, indent=2))
-
-    

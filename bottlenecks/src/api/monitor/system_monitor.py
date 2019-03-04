@@ -58,8 +58,8 @@ def _parse_cpu_stats(cpu_stats):
     nice = nice - guest_nice
     total_idle = idle + io_wait
     total_system = system + irq + soft_irq
-    total_virtual = guest + guest_nice
-    total = float(user + nice + total_system + total_idle + steal + total_virtual)
+    total_virtual = guest + guest_nice + steal
+    total = float(user + nice + total_system + total_idle + total_virtual)
     return {'user': user, 'nice': nice, 'idle': total_idle, 'system': total_system,
             'virtual': total_virtual, 'total': total, 'io_wait': io_wait, 'nice': nice}
 
