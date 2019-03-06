@@ -80,7 +80,7 @@ class FileIOBound(API):
             start = time.time()
             f = tempfile.NamedTemporaryFile()
             for i in range(10):
-                f.write(bigtext)
+                f.write(bigtext                                                                                                                     )
                 f.flush()
         finally:
             f.close()
